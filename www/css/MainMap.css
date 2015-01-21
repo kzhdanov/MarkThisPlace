@@ -1,0 +1,246 @@
+#Map
+{
+    width: 100%;
+    height: 95.5vh; /*Equal to 1% of the height of the initial containing block.*/
+    position: absolute;
+}
+
+.ymaps-2-1-17-copyright
+{
+    visibility: hidden;
+}
+
+body
+{
+    margin: 0px 0px 0px 0px; 
+    background-image: url("img/MarkThisPlace1.png");
+    background-repeat: no-repeat;
+    background-color: black;
+    width: 100%;
+    background-position: center top;
+}
+
+.ymaps-2-1-17-search .ymaps-2-1-17-search_layout_normal
+{
+     width: 96%;
+     border-radius: 0.5em;
+}
+
+#menu
+{ 
+    position: relative;
+    background-color: #ebebeb;
+    width: 98%;
+    margin-left: 1%;
+    height: auto;
+    box-shadow: 1px 2px 5px rgba(0,0,0,.31); 
+    border-radius: 0.5em;
+    border: solid 1px #cbc9c9;
+}
+
+.ui-btn 
+{
+    margin: 0px !important;
+    padding: 2% !important;
+    border-radius: 0.5em;
+}
+
+#MapHeader
+{
+    height: 4vh !important;
+    background-color: #333333;
+    color: white;
+    font-size: 100%;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    padding-bottom: 0.5vh;
+    visibility: visible;
+}
+
+#MapFooter
+{
+    font-size: 100%;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    position:absolute; 
+    bottom: 7px !important;
+    z-index: 10;
+    width:  90%;
+    margin-left: 5%;
+    height:  53px !important;/*10vh !important;*/
+}
+
+
+.textinputCommon
+{
+    margin-top: 10px;
+    border-radius: 0.4em;
+    background-color: #fff; 
+    box-shadow: 1px 2px 5px;
+    width: 90%;
+    margin-left: 5%;
+    border: solid 1px #cbc9c9;
+}
+
+textarea
+{
+    margin-top: 5px;
+    width: 88.8%;
+    height: 15vh;
+    margin-left: 5%;
+    box-shadow: 1px 2px 5px;
+    border-radius: 0.4em;
+    border: solid 1px #cbc9c9;
+    margin-bottom: 5px;
+}
+
+#save
+{
+    border: 1px solid #333333;
+}
+
+#menu button:hover 
+{
+    top: 1px;
+}
+
+#MapFooter button
+{
+    border-radius: 90% !important;
+	width: 53px !important;
+	height: 53px !important;
+    border: solid 2px #333333;
+    background-repeat: no-repeat;
+    background-position: center;
+    visibility: hidden;
+}
+
+#footerBtn1
+{
+    margin-right:  3vh !important;
+    background-image: url(icons/FooterBTN/compass.png), -webkit-gradient(linear, left top, left bottom, from(#d5cea6), to(#b7ad70));
+}
+
+#footerBtn1:hover
+{
+   /* top: 1px;
+    box-shadow: 0 0 5px #f00;*/
+}
+
+#footerBtn2
+{
+    margin-right:  3vh !important;
+    background-image: url(icons/FooterBTN/search.png), -webkit-gradient(linear, left top, left bottom, from(#d5cea6), to(#b7ad70)); /*from(#cbe3ba), to(#a6cc8b));*/
+    
+}
+
+#footerBtn3
+{
+    margin-right:  3vh !important;
+    background-image: url(icons/FooterBTN/settings.png), -webkit-gradient(linear, left top, left bottom, from(#d5cea6), to(#b7ad70));
+}
+
+#footerBtn4
+{
+    background-image: url(icons/FooterBTN/filter.png), -webkit-gradient(linear, left top, left bottom, from(#d5cea6), to(#b7ad70));
+}
+
+.ymaps-2-1-17-balloon.ymaps-2-1-17-balloon_layout_panel.ymaps-2-1-17-i-custom-scroll
+{
+   bottom: 10vh !important; 
+   border-radius: 0.5em;
+   background-color: #ebebeb !important;
+   background-image: url(icons/info.png) !important;
+   background-position: right !important;    
+   background-repeat: no-repeat !important;
+   min-height: 110px !important;
+   margin-left: 2%  !important;
+   width: 96%;    
+}
+
+.ymaps-2-1-17-balloon__content
+{
+   min-height: 109px !important;
+   border-radius: 0.5em;
+}
+
+h4
+{
+    -webkit-margin-before: 0.5em !important;
+    -webkit-margin-after: 0.5em !important;
+}
+
+span
+{
+    color: #D8523C;
+    font-weight: bold;
+}
+
+.RedTriangle
+{
+    position: relative;
+    width: 70px !important;
+    height: 100px;
+    margin-top: 65vh !important;
+    float: left;
+    margin-left: 23.5vh;
+    border-radius: 100% 100% 0% 0px;
+    border: solid 2px #FFFFFF;
+}
+
+.rightMenu
+{
+    position: absolute;
+    right: 2px;
+    top: 8vh;
+    height: 70vh;
+    z-index: 100000;
+    border-radius: 0.5em;
+}
+
+.rightMenu Button
+{
+    /*border-radius: 90% !important;*/
+    margin-top:  3px !important;
+    left: 1vh;
+	width: 0px;
+	height: 0px;
+    background-repeat: no-repeat;
+    background-position: center;
+    box-shadow : 0 0 12px #f00;
+    background-image: url("icons/icons.png");
+}
+
+.rightMenu #RightMenuBtn1 
+{   
+    background-position-x: 10px;
+    background-position-y: -3.5px;
+}
+
+.rightMenu #RightMenuBtn2 
+{
+    background-position-x: -28px;
+    background-position-y: -3.5px;
+}
+
+.rightMenu #RightMenuBtn3 
+{
+    background-position-x: -104px;;
+    background-position-y: -3.5px;
+}
+
+.rightMenu #RightMenuBtn4 
+{
+    background-position-x: -142px;
+    background-position-y: -3.5px;
+}
+
+.rightMenu #RightMenuBtn5 
+{
+    background-position-x: -66px;
+    background-position-y: -3.5px;
+}
+
+.rightMenu #RightMenuBtn6 
+{
+    background-position-x: -181px;
+    background-position-y: -3.5px;
+}

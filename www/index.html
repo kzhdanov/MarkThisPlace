@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <!--<meta charset="windows-1251">-->
+    <link rel="stylesheet" type="text/css" href="jqm/jquery.mobile-min.css">
+    <link rel="stylesheet" type="text/css" href="css/MainMap.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+      
+    <script src="http://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+    <script src='js/jquery.min.1.6.4.js' type="text/javascript"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="intelxdk.js"></script>
+    <script src="cordova.js"></script>
+<script type="text/javascript">
+    /*
+      document.addEventListener("intel.xdk.device.ready",function(){
+        //lock the application in portrait orientation
+           intel.xdk.device.setRotateOrientation("portrait");
+           intel.xdk.device.setAutoRotate(false);
+
+    //hide splash screen
+    intel.xdk.device.hideSplashScreen();        
+},false);   
+*/
+document.addEventListener("deviceready", onDeviceReady, false);
+
+function onDeviceReady() 
+{
+    intel.xdk.device.hideSplashScreen();     
+}
+    
+//Загружаем картинку
+var NewImg = new Image ();
+NewImg.src = "css/icons/icons.png";
+var answer;
+var gCollection;
+    
+var myMap;
+var searchControl;
+var isClickRMB1 = false; 
+var isClickRMB2 = false;
+var isClickRMB3 = false; 
+var isClickRMB4 = false; 
+var isClickRMB5 = false; 
+var isClickRMB6 = false; 
+    
+function getXmlHttp()
+{
+  var xmlhttp;
+  try 
+  {
+    xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+  } 
+  catch (e) 
+  {
+    try {
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+        } 
+        catch (E) 
+        {
+            xmlhttp = false;
+        }
+  }
+  if (!xmlhttp && typeof XMLHttpRequest!='undefined') 
+  {
+    xmlhttp = new XMLHttpRequest();
+  }
+  return xmlhttp;
+}
+    
+function loadXMLDoc() //Функция загрузит все метки из базы
+{
+    var xmlHttp;
+    xmlHttp = getXmlHttp();
+    xmlHttp.open('GET', 'http://markthisplace.8nio.com/Scripts/ReadFromSQL.php', false);
+    xmlHttp.setRequestHeader('Content-Type', 'application/json; charset=utf-8');
+    xmlHttp.onreadystatechange = function() 
+    {
+        answer = xmlHttp.responseText;
+    };
+    xmlHttp.send(); 
+    
+    return answer;
+   
+}    
+       
+function Anonymous(nickName)
+{
+    if(nickName == "")
+    {
+        return nickName = "Anonymous";
+    }
+    else
+    {
+        return nickName;
+    }
+}
+    
+function ConvertDate(date)  //Функция преобразует дату 
+{
+
+	var d = date;
+	d = [d.getDate(), d.getMonth()+1, d.getFullYear(), d.getHours(), d.getMinutes()];
+	
+	for(var i = 0; i < d.length; i++)
+	{
+		if((d[i]*1) < 10) 
+		{
+			d[i] = '0'+d[i];
+		}
+	}
+	return d.slice(3).join(':') + ' ' + d.slice(0,3).join('.');
+}
+    
+function EventsOnClick()
+{
+    myMap.events.add('click', function (e) {
+	if ($('#menu').css('display') == 'block') 
+    {
+        DeleteDefMarkerOnClick();
+        $('#menu').remove();
+    }
+	else 
+    {
+        FirstWindow(e, true);
+    }
+                                            });
+}
+ 
+function DefMarker(coords)
+{
+    var placemarkIn = new ymaps.Placemark([coords[0], coords[1]], 
+	    {      
+			hintContent: "Я хочу установить метку здесь!"
+		},
+		{
+			preset: 'islands#grayDotIcon',
+		});	
+       //console.log(myMap.getZoom());
+       myMap.setCenter([coords[0]*1+ 0.00045, coords[1]], 17, {duration: 1500});  //0.042
+       myMap.geoObjects.add(placemarkIn);
+       //setTimeout(function () { myMap.geoObjects.add(placemarkIn); }, 500);
+}
+        
+function DeleteDefMarkerOnClick()
+{
+    myMap.geoObjects.each(function (item) 
+	{
+        if (item.properties.get('hintContent') == 'Я хочу установить метку здесь!') 
+            {				
+                myMap.geoObjects.remove(item);	
+            };
+    });
+    $('#MapHeader').replaceWith("<div data-role=\"header\" align=\"center\" id=\"MapHeader\"><img src='css/icons/target.png' class=\"ui-li-icon\" align='center'>Mark This Place</div>");
+}
+    
+function Steps(menuContentInStep, textHeader,  markerType, coords)
+{
+    $('#menu').remove();
+    $('body').append(menuContentInStep);
+    if(textHeader == ''){}
+    else
+    {
+        $('#MapHeader').text(textHeader);
+    }
+    
+    $('#closeBtn').click(function(e) 
+    {
+        $('#menu').remove();
+        DeleteDefMarkerOnClick();
+    });
+    
+    $('#freeWifi').click(function(e) 
+    {
+        $('#menu').remove();
+        var wifiChoice = 
+        "<div data-role='page' id='menu'>\
+         <div data-role='fieldcontain'>\
+            <input type='text' name='nickName' id='nickName' class='textinputCommon' data-mini='true' placeholder='Your Nick Name'/>\
+         </div>\
+         <div data-role='fieldcontain'>\
+             <input type='text' name='wifiName' id='wifiName' class='textinputCommon' data-mini='true' placeholder='Имя Wi-Fi сети'/>\
+         </div>\
+         <div data-role='fieldcontain'>\
+	         <textarea name='textarea' id='textarea' data-mini='true' placeholder='Описание'></textarea>\
+         </div>\
+         <button class='ui-btn ui-mini ui-btn-b ui-shadow' name='close' id='closeBtn'><img src='css/icons/Close.png' class='ui-li-icon' align='left'>Закрыть</button>\
+         <button class='ui-btn ui-mini ui-btn-a ui-shadow' id='save' name='save' type='submit'><img src='css/icons/save.png' class='ui-li-icon' align='left'>Сохранить</button>\
+         </div>";   
+         Steps(wifiChoice, 'Free Wi-Fi (без пароля)', 1, coords);
+    });
+    
+    $('#passWifi').click(function(e) 
+    {
+         $('#menu').remove();
+         var wifiChoice = 
+         '<div data-role="page" id="menu">\
+          <div data-role="fieldcontain">\
+             <input type="text" name="nickName" class="textinputCommon" id="nickName" data-mini="true" placeholder="Your Nick Name"/>\
+          </div>\
+          <div data-role="fieldcontain">\
+             <input type="text" name="wifiName" id="wifiName" class="textinputCommon" data-mini="true" placeholder="Имя Wi-Fi сети"/>\
+          </div>\
+          <div data-role="fieldcontain">\
+             <input type="text" name="wifiPass" id="wifiPass" class="textinputCommon" data-mini="true" placeholder="Password"/>\
+          </div>\
+          <div data-role="fieldcontain">\
+	          <textarea name="textarea" id="textarea" data-mini="true" placeholder="Описание"></textarea>\
+          </div>\
+          <button class="ui-btn ui-mini ui-btn-b ui-shadow" name="close" id="closeBtn"><img src="css/icons/Close.png" class="ui-li-icon" align="left">Закрыть</button>\
+          <button class="ui-btn ui-mini ui-btn-a ui-shadow" id="save" name="save" type="submit"><img src="css/icons/save.png" class="ui-li-icon"\                                                        align="left">Сохранить</button>\
+           </div>';   
+           Steps(wifiChoice, 'Wi-Fi с известным паролем', 2, coords);
+     });
+     
+    $('#save').click(function(e) 
+    {
+     var nickName = "";
+     var wifiName = "";
+     var wifiPass = "";    
+     var description = "";
+         
+     switch(markerType*1) //Проверка заполнения обязательных полей
+		        {
+                    case 1:
+                        if(document.getElementById("wifiName").value == "")
+                        {
+                            document.getElementById('wifiName').style.borderColor = 'red';
+                        }
+                        else
+                        {
+                            nickName = document.getElementById('nickName').value;
+                            nickName = Anonymous(nickName);
+                            wifiName = document.getElementById('wifiName').value;
+                            description = document.getElementById('textarea').value;
+             var dateTime = MarkOnMap(coords, nickName, '<span>Wi-Fi Name: '+wifiName+'</span><br/>'+'Описание: '+description, 'Free Wi-Fi (без пароля)', 0,5, 36, 49);
+                            $('#menu').remove();
+                            DeleteDefMarkerOnClick(); //***********************************************************************************************************************************************************************	
+var cor = coords[0]+', '+coords[1];
+$.ajax({type:'GET',url:'http://markthisplace.8nio.com/Scripts/WriteToSQLFreeWIFI.php', data:{NickName: nickName, Coords: cor, WiFiName: wifiName, Description: description, CreatedOn: dateTime}});
+//***********************************************************************************************************************************************************************
+                        }
+                    break
+                    case 2:
+                        if(document.getElementById("wifiName").value == "" || document.getElementById("wifiPass").value == "")
+                        {
+                            if(document.getElementById("wifiName").value == "")
+                            {
+                                document.getElementById('wifiName').style.borderColor = 'red';
+                            }
+                            else
+                            {
+                                document.getElementById('wifiName').style.borderColor = '';
+                            }
+                            if (document.getElementById("wifiPass").value == "")
+                            {
+                                document.getElementById('wifiPass').style.borderColor = 'red';
+                            }
+                            else
+                            {
+                                document.getElementById('wifiPass').style.borderColor = '';
+                            }
+                        }
+                        else
+                        {
+                            nickName = document.getElementById('nickName').value;
+                            nickName = Anonymous(nickName);
+                            wifiName = document.getElementById('wifiName').value;
+                            description = document.getElementById('textarea').value;
+                            wifiPass = document.getElementById('wifiPass').value;                
+            var dateTime =  MarkOnMap(coords, nickName, '<span>Wi-Fi Name: '+wifiName+'<br/>Wi-Fi Password: '+wifiPass+'</span><br/>'+'Описание: '+description, 'Wi-Fi с известным паролем', 36, 5, 72, 49);
+                            $('#menu').remove();
+                            DeleteDefMarkerOnClick();                            //***********************************************************************************************************************************************************************
+var cor = coords[0]+', '+coords[1];
+$.ajax({type:'GET',url:'http://markthisplace.8nio.com/Scripts/WriteToSQLPassWIFI.php', data:{NickName: nickName, Coords: cor, WiFiName: wifiName, WiFiPass: wifiPass, Description: description, CreatedOn: dateTime}});
+//***********************************************************************************************************************************************************************
+                        }
+                    break
+                    default :
+                        if(document.getElementById("textarea").value == "")
+                        {
+                            document.getElementById('textarea').style.borderColor = 'red';  
+                        }
+                        else
+                        {
+                              switch(markerType*1) //Все случаи когда не Wi-Fi
+		                      {
+                                  case 3:
+                            nickName = document.getElementById('nickName').value;
+                            nickName = Anonymous(nickName);
+                            description = document.getElementById('textarea').value;
+            var dateTime = MarkOnMap(coords, nickName, 'Описание: '+description, 'Велопарковка', 108, 5, 144, 49);  
+                            $('#menu').remove();
+                            DeleteDefMarkerOnClick();
+//***********************************************************************************************************************************************************************					
+var cor = coords[0]+', '+coords[1];
+$.ajax({type:'GET',url:'http://markthisplace.8nio.com/Scripts/WriteToSQLBicycleParking.php', data:{NickName: nickName, Coords: cor, Description: description, CreatedOn: dateTime}});
+//***********************************************************************************************************************************************************************
+                                  break
+                                   case 4:
+                            nickName = document.getElementById('nickName').value;
+                            nickName = Anonymous(nickName);
+                            description = document.getElementById('textarea').value;
+             var dateTime = MarkOnMap(coords, nickName, 'Описание: '+description, 'Футбол / Баскетбол (поле)', 144, 5, 181, 49);  
+                            $('#menu').remove();
+                            DeleteDefMarkerOnClick();                                      //***********************************************************************************************************************************************************************	
+var cor = coords[0]+', '+coords[1];
+$.ajax({type:'GET',url:'http://markthisplace.8nio.com/Scripts/WriteToSQLFootball.php', data:{NickName: nickName, Coords: cor, Description: description, CreatedOn: dateTime}});
+//***********************************************************************************************************************************************************************
+                                  break
+                                   case 5:
+                            nickName = document.getElementById('nickName').value;
+                            nickName = Anonymous(nickName);
+                            description = document.getElementById('textarea').value;
+             var dateTime = MarkOnMap(coords, nickName, 'Описание: '+description, 'Открытая крыша', 72, 5, 108, 49);  
+                            $('#menu').remove();
+                            DeleteDefMarkerOnClick();         //***********************************************************************************************************************************************************************					
+var cor = coords[0]+', '+coords[1];
+$.ajax({type:'GET',url:'http://markthisplace.8nio.com/Scripts/WriteToSQLOpenRoof.php', data:{NickName: nickName, Coords: cor, Description: description, CreatedOn: dateTime}});
+//***********************************************************************************************************************************************************************
+                                  break;
+                                   case 6:
+                                    MarkOnMap(coords, document.getElementById('nickName').value, 'Описание:                                             '+document.getElementById('textarea').value, 'Интересное место', 181, 5, 218, 49);  
+                                    $('#menu').remove();
+                                    DeleteDefMarkerOnClick();
+                                  break;
+                              }
+                        }
+                    break;
+                }  
+    });
+}
+    
+function MarkOnMapDef(coord, nickName, description, title, t, b, l, r, dateTime)    //Установим маркер на карте при загрузке страници
+{    
+    var myPlacemarkDef = new ymaps.Placemark([coord[0], coord[1]], 
+				{      
+					balloonContentHeader: title,
+					balloonContentBody: description,
+					balloonContentFooter: dateTime+' <h4>Добавил : '+nickName+'</h4>'
+				},
+				{
+					iconLayout: 'default#image',
+					iconImageClipRect: [[t,b], [l, r]], 
+					iconImageHref: NewImg.src, 
+                    balloonPanelMaxMapArea: 'Infinity', //открыть балун внизу карты
+				});
+                    myMap.geoObjects.add(myPlacemarkDef);
+}
+    
+function MarkOnMap(coord, nickName, description, title, t, b, l, r) //Устанавливаем маркер на карте
+{		
+    nickName = Anonymous(nickName);
+    //получаем верный формат даты
+    var date = new Date();
+    var dateTime = ConvertDate(date);
+    
+    var myPlacemark = new ymaps.Placemark([coord[0], coord[1]], 
+				{      
+					balloonContentHeader: title,
+					balloonContentBody: description,
+					balloonContentFooter: dateTime+' <h4>Добавил : '+nickName+'</h4>'
+				},
+				{
+					iconLayout: 'default#image',
+					iconImageClipRect: [[t,b], [l, r]], 
+					iconImageHref: NewImg.src, 
+                    balloonPanelMaxMapArea: 'Infinity', //открыть балун внизу карты
+				});
+                    myMap.geoObjects.add(myPlacemark); 
+    return dateTime;
+}
+    
+function FirstWindow(e, codePlace)
+{
+    $('#MapHeader').text('Выберете один из вариантов');
+    if(codePlace)
+    {
+        var coords = e.get('coords');
+    }
+    else
+    {
+        var coords = e;
+    }
+    var menuContent =
+'<div data-role="page" id="menu">\
+<button class="ui-btn ui-mini ui-btn-a ui-shadow" name="wifi"><img src="css/icons/Wifi.png" class="ui-li-icon" align="left">Wi-Fi</button>\
+<button class="ui-btn ui-mini ui-btn-a ui-shadow" name="bicycle"><img src="css/icons/Bicycle.png" class="ui-li-icon" align="left">Велопарковка</button>\
+<button class="ui-btn ui-mini ui-btn-a ui-shadow" name="ball"><img src="css/icons/Ball.png" class="ui-li-icon" align="left">Футбольное / Баскетбольное поле</button>\
+<button class="ui-btn ui-mini ui-btn-a ui-shadow" name="roof"><img src="css/icons/Roof.png" class="ui-li-icon" align="left">Открытая крыша</button>\
+<button class="ui-btn ui-mini ui-btn-a ui-shadow" name="star"><img src="css/icons/Star.png" class="ui-li-icon" align="left">Интересное место</button>\
+<button class="ui-btn ui-mini ui-btn-b ui-shadow" name="close"><img src="css/icons/Close.png" class="ui-li-icon" align="left">Закрыть</button>\
+</div>';                              
+  
+    $('body').append(menuContent);
+       
+    $('#menu button').click(function(e) //клик по любой кнопке
+    {        
+           var defChoice = 
+                       '<div data-role="page" id="menu">\
+                        <div data-role="fieldcontain">\
+                            <input type="text" name="nickName" id="nickName" class="textinputCommon" data-mini="true" placeholder="Your Nick Name"/>\
+                        </div>\
+                        <div data-role="fieldcontain">\
+	                        <textarea name="textarea" id="textarea" data-mini="true" placeholder="Описание"></textarea>\
+                        </div>\
+                        <button class="ui-btn ui-mini ui-btn-b ui-shadow" name="close" id="closeBtn"><img src="css/icons/Close.png" class="ui-li-icon" align="left">Закрыть</button>\
+                        <button class="ui-btn ui-mini ui-btn-a ui-shadow" id="save" name="save" type="submit"><img src="css/icons/save.png" class="ui-li-icon"\                                                       align="left">Сохранить</button>\
+                        </div>';      
+
+          switch(e.currentTarget.name)
+				{
+					case "close":
+                        $('#menu').remove();
+                        DeleteDefMarkerOnClick();
+					break
+                    case "wifi":
+				    $('#MapHeader').text('Wi-Fi');
+                        var wifiChoice = 
+                        '<div data-role="page" id="menu">\
+                        <button class="ui-btn ui-mini ui-btn-a ui-shadow" name="freeWifi" id="freeWifi">\
+                        <img src="css/icons/Wifi.png" class="ui-li-icon" align="left">Free Wi-Fi (без пароля)</button>\
+                        <button class="ui-btn ui-mini ui-btn-a ui-shadow" name="passWifi" id="passWifi">\
+                        <img src="css/icons/Key.png" class="ui-li-icon" align="left">Wi-Fi с известным паролем</button>\
+                        <button class="ui-btn ui-mini ui-btn-b ui-shadow" name="close" id="closeBtn"><img src="css/icons/Close.png" class="ui-li-icon" align="left">Закрыть</button>\
+                        </div>';   
+                        Steps(wifiChoice, 'Wi-Fi', 0, coords);
+                    break
+                    case "bicycle":
+				        $('#MapHeader').text('Велопарковка'); 
+                        Steps(defChoice, "", 3, coords); 
+					break
+                    case "ball":
+				        $('#MapHeader').text('Футбольное / Баскетбольное поле');
+                        Steps(defChoice, "", 4, coords);
+					break
+                    case "roof":
+				        $('#MapHeader').text('Открытая крыша');
+                        Steps(defChoice, "", 5, coords);
+					break
+				    case "star":
+				        $('#MapHeader').text('Интересное место');
+                        Steps(defChoice, "", 6, coords);
+					break;
+                }
+    }); 
+    if(codePlace) //Если не клик мыши, а нажатие клавиши btn1 - то false и в этот блок кода не идем
+    {
+        DefMarker(coords);
+    }
+}
+    
+function SetMarkerCurrentUserPosition() //Установить маркер в текущую геопозицию пользователя
+{
+    var geolocation = ymaps.geolocation;
+    geolocation.get({provider: 'yandex', mapStateAutoApply: true}).then(function (result) 
+    {
+        if ($('#menu').css('display') == 'block') 
+        {
+            $('#menu').remove();
+        }
+        result.geoObjects.options.set('preset', 'islands#geolocationIcon');
+        result.geoObjects.options.set('hasBalloon', false);
+		myMap.geoObjects.add(result.geoObjects);
+        setTimeout(function () {TimeOut(result.geoObjects.position)}, 1000);
+    });
+}    
+    
+function TimeOut(co) // Выставляем центр для метки и вызываем меню
+{
+    myMap.setCenter([co[0]*1+ 0.00045, co[1]], 17);
+    if ($('#menu').css('display') == 'block') 
+    {
+        $('#menu').remove();
+    }
+    else
+    {
+        FirstWindow(co, false);
+    }
+}
+    
+function StyleInAction(item, isClick)
+{
+		$(item).click(function() 
+		{
+			if(!isClick)
+			{
+				var styleInAction = 
+				{
+				    'boxShadow' : '0 0 12px #f00' 
+				}
+				$(item).css(styleInAction);
+				isClick = true;
+			}
+			else
+			{
+				var styleWithoutAction = 
+				{
+				    'boxShadow' : 'none' 
+				}
+				$(item).css(styleWithoutAction);
+				isClick = false; 
+			}
+		});
+}
+    
+function StyleInActionRightMenu(item, isClick)
+{
+		$(item).click(function() 
+		{
+			if(!isClick)
+			{
+				var styleInAction = 
+				{
+				    'boxShadow' : '0 0 12px #f00' 
+				}
+				$(item).css(styleInAction);
+				isClick = true;
+                
+                CreateRightMenu();
+			}
+			else
+			{
+				var styleWithoutAction = 
+				{
+				    'boxShadow' : 'none' 
+				}
+				$(item).css(styleWithoutAction);
+				isClick = false; 
+                
+                DestroyRightMenu();
+			}
+		});
+}
+
+   
+function StyleInActionRightMenuButtons(item, isClick)
+{
+    if(isClick)
+    {
+        $(item).css('boxShadow','0 0 12px #f00');
+        isClick = false;
+        return isClick;
+    }
+    else
+    {   
+	    $(item).css('boxShadow','none');
+        isClick = true;
+        return isClick;
+    }    
+}
+    
+function NoneShadowRightMenuButtons(item, isClick)
+{
+    if(isClick)
+    {
+        $(item).css('boxShadow','none');
+    }
+}
+    
+function CreateRightMenu()  //Поведение правого меню при нажатие на пункты меню
+{
+    $('.rightMenu').animate({width:'60px',opacity:'0.8'},"slow"); 
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn1'></button>");
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn2'></button>");
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn3'></button>");
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn4'></button>");
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn5'></button>");
+    $('.rightMenu').append("<button class='ui-btn ui-btn-inline ui-corner-all ui-shadow' id='RightMenuBtn6'></button>");
+    
+        $('#RightMenuBtn1').click(function(){
+            isClickRMB1 = StyleInActionRightMenuButtons('#RightMenuBtn1', isClickRMB1);
+            
+            myMap.geoObjects.each(function (item) 
+			{
+                if(item.properties.get("balloonContentHeader") == 'Free Wi-Fi (без пароля)')
+                {
+                    myMap.geoObjects.remove(item);
+                }
+            });
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn1', isClickRMB1);
+    
+        $('#RightMenuBtn2').click(function(){
+            isClickRMB2 = StyleInActionRightMenuButtons('#RightMenuBtn2', isClickRMB2);
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn2', isClickRMB2);
+    
+        $('#RightMenuBtn3').click(function(){
+            isClickRMB3 = StyleInActionRightMenuButtons('#RightMenuBtn3', isClickRMB3);
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn3', isClickRMB3);
+    
+        $('#RightMenuBtn4').click(function(){
+            isClickRMB4 = StyleInActionRightMenuButtons('#RightMenuBtn4', isClickRMB4);
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn4', isClickRMB4);
+    
+        $('#RightMenuBtn5').click(function(){
+            isClickRMB5 = StyleInActionRightMenuButtons('#RightMenuBtn5', isClickRMB5);
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn5', isClickRMB5);
+    
+        $('#RightMenuBtn6').click(function(){
+            isClickRMB6 = StyleInActionRightMenuButtons('#RightMenuBtn6', isClickRMB6);
+        });
+            NoneShadowRightMenuButtons('#RightMenuBtn6', isClickRMB6);
+    
+    $('#RightMenuBtn1').animate({width:'50px',height:'50px'},"slow");
+    $('#RightMenuBtn2').animate({width:'50px',height:'50px'},"slow");
+    $('#RightMenuBtn3').animate({width:'50px',height:'50px'},"slow");
+    $('#RightMenuBtn4').animate({width:'50px',height:'50px'},"slow");
+    $('#RightMenuBtn5').animate({width:'50px',height:'50px'},"slow");
+    $('#RightMenuBtn6').animate({width:'50px',height:'50px'},"slow");
+}
+
+function DestroyRightMenu()  //Скрыть правое меню (по факту удалить)
+{
+    $('.rightMenu button').animate({width:'0px',height:'0px'},"slow");
+    setTimeout(function () {$('.rightMenu button').remove();}, 500);
+    $('.rightMenu').animate({width:'0vh'},"slow");   
+}
+    
+function CreateMap() //главная функция карты
+{
+    ymaps.ready(init);
+
+    function init () 
+    {
+        ymaps.geolocation.get({
+            provider: 'yandex',
+            mapStateAutoApply: true
+        }).then(function (result)
+            {
+                myMap = new ymaps.Map('Map', 
+                {
+                    center: [result.geoObjects.position[0], result.geoObjects.position[1]], 
+                    zoom: 11,
+                    behaviors: ['default', 'scrollZoom'],
+			        controls: ["zoomControl"],
+			        type: 'yandex#map'
+                });   
+			    searchControl = new ymaps.control.SearchControl({options: {
+                    noPlacemark: true
+                }});
+                //
+            var serverAnswer=loadXMLDoc();
+            var serverAnswerArray = JSON.parse(serverAnswer);
+                
+//********************************************* Load all Markers from SQL and put on the myMap ***********************************                
+serverAnswerArray.forEach(function(items)
+{
+switch(items.type)
+    {
+		case 1:
+var inputCoords = items.coordinates.split(',', 2);
+MarkOnMapDef(inputCoords, items.nickName, '<span>Wi-Fi Name: '+items.wifiName+'</span><br/>'+'Описание: '+items.description, 'Free Wi-Fi (без пароля)', 0,5, 36, 49, items.createdOn);
+		break
+        case 2:
+var inputCoords = items.coordinates.split(',', 2);
+MarkOnMapDef(inputCoords, items.nickName, '<span>Wi-Fi Name: '+items.wifiName+'<br/>Wi-Fi Password: '+items.wifiPass+'</span><br/>'+'Описание: '+items.description, 'Wi-Fi с известным паролем', 36, 5, 72, 49, items.createdOn);
+        break
+        case 3:
+var inputCoords = items.coordinates.split(',', 2);
+MarkOnMapDef(inputCoords, items.nickName, 'Описание: '+items.description, 'Велопарковка', 108, 5, 144, 49, items.createdOn);                        
+		break
+        case 4:
+var inputCoords = items.coordinates.split(',', 2);
+MarkOnMapDef(inputCoords, items.nickName, 'Описание: '+items.description, 'Футбол / Баскетбол (поле)', 144, 5, 181, 49, items.createdOn);                       
+		break
+        case 5:
+var inputCoords = items.coordinates.split(',', 2);
+MarkOnMapDef(inputCoords, items.nickName, 'Описание: '+items.description, 'Открытая крыша', 72, 5, 108, 49, items.createdOn);                              
+		break
+	    case 6:
+var inputCoords = items.coordinates.split(',', 2);
+                        
+		break;
+    }
+}); 
+                EventsOnClick();
+                
+               // gCollection = ymaps.GeoObjectCollection();
+                
+                //Вызываем функцию фильтра
+                /*
+                myMap.geoObjects.each(function (item) 
+				    {
+                           //if (item.properties.get("balloonContentHeader") == 'Free Wi-Fi (без пароля)') 
+				            //{	
+                               //gCollection.add(item);
+                               //myMap.geoObjects.remove(item);
+				           // }
+                        
+                    });
+               */
+            });
+    }
+}
+</script>
+  </head>
+  <body>
+      <div data-role="header" align="center" id="MapHeader"><img src='css/icons/target.png' class="ui-li-icon" align="center">Mark This Place</div>
+      <script type="text/javascript">
+      $('#MapHeader').css('visibility','hidden');
+      </script>
+      <div id="Map">
+        <div class = "rightMenu">
+            
+        </div>  
+        <div data-role="footer" id="MapFooter" align="center">
+            <button class="ui-btn ui-btn-inline ui-corner-all ui-shadow" id="footerBtn1"></button>
+            <button class="ui-btn ui-btn-inline ui-corner-all ui-shadow" id="footerBtn2"></button>
+            <button class="ui-btn ui-btn-inline ui-corner-all ui-shadow" id="footerBtn3"></button>
+            <button class="ui-btn ui-btn-inline ui-corner-all ui-shadow" id="footerBtn4"></button>
+        </div>
+      </div>
+      
+    <script type="text/javascript">
+    function Alert()
+    {
+        alert('Пожалуйста проверьте своё подключение к интернету!');
+        $('#Map').prepend('<div class="RedTriangle"></div>');
+    }
+        
+    $(document).ready(function() 
+    {
+        var searchVisible = false;
+        $.ajax({
+                url: "http://www.google.com",
+                context: document.body,
+                error: function(jqXHR, exception) {Alert();},
+                success: function(){Main();}
+                })
+        function Main()
+        {
+           setTimeout(function () { 
+           $('#Map').css('visibility','hidden');
+           CreateMap();
+               
+           $('#Map').css('visibility','visible');
+           $('#MapFooter button').css('visibility','visible');
+           $('#MapHeader').css('visibility','visible');
+               
+           //Нажатие кнопок Footer Menu   
+           $('#footerBtn1').click(function() //possition
+            {
+                SetMarkerCurrentUserPosition();
+            });      
+               
+            $('#footerBtn2').click(function() //search удаляем - добаляем
+            {
+               if(!searchVisible)
+               {
+                    if ($('#menu').css('display') == 'block') 
+                        {
+                            DeleteDefMarkerOnClick();
+                            $('#menu').remove();
+                        }
+                   
+                   myMap.controls.add(searchControl); 
+                   searchVisible = true;
+               }
+               else
+               {
+                   myMap.controls.remove(searchControl);
+                   searchVisible = false;
+               }
+            });
+            
+            $('#footerBtn4').click(function() //Filter
+            {
+               
+            }); 
+               
+               }, 2000);
+        }
+        //StyleInAction('#footerBtn1', false);
+        StyleInAction('#footerBtn2', false);
+        StyleInAction('#footerBtn3', false);
+        StyleInActionRightMenu('#footerBtn4', false);
+    });
+      </script>
+  </body>
+</html>
